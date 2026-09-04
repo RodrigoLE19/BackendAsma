@@ -2,7 +2,6 @@ package com.Rodrigo.RespiraFacilAPI.services.impl;
 import com.Rodrigo.RespiraFacilAPI.dto.EvaluacionDTO;
 import com.Rodrigo.RespiraFacilAPI.dto.ResponseEvaluacionDTO;
 import com.Rodrigo.RespiraFacilAPI.entities.Evaluacion;
-import com.Rodrigo.RespiraFacilAPI.entities.Usuario;
 import com.Rodrigo.RespiraFacilAPI.mappers.EvaluacionMapper;
 import com.Rodrigo.RespiraFacilAPI.repositories.EvaluacionRepository;
 import com.Rodrigo.RespiraFacilAPI.services.IEvaluacionService;
@@ -19,8 +18,12 @@ public class EvaluacionServiceImpl implements IEvaluacionService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<Evaluacion> obtenerEvaluacionesPorUsuario(Integer idUsuario) {
-        return evaluacionRepository.obtenerEvaluacionesPorUsuario(idUsuario);
+    public List<ResponseEvaluacionDTO> obtenerEvaluacionesPorUsuario(Integer idUsuario) {
+
+        List<Evaluacion> evaluaciones =
+                evaluacionRepository.obtenerEvaluacionesPorUsuario(idUsuario);
+
+        return EvaluacionMapper.toResponseEvaluacionDTOList(evaluaciones);
     }
 
     @Transactional
