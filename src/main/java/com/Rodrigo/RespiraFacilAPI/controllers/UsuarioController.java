@@ -1,8 +1,5 @@
 package com.Rodrigo.RespiraFacilAPI.controllers;
-import com.Rodrigo.RespiraFacilAPI.dto.AuthUsuarioDTO;
-import com.Rodrigo.RespiraFacilAPI.dto.RegistroUsuarioDTO;
-import com.Rodrigo.RespiraFacilAPI.dto.ResponseEvaluacionDTO;
-import com.Rodrigo.RespiraFacilAPI.dto.UsuarioResponseDTO;
+import com.Rodrigo.RespiraFacilAPI.dto.*;
 import com.Rodrigo.RespiraFacilAPI.entities.Evaluacion;
 import com.Rodrigo.RespiraFacilAPI.services.impl.EvaluacionServiceImpl;
 import com.Rodrigo.RespiraFacilAPI.services.impl.UsuarioServiceImpl;
@@ -10,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import com.Rodrigo.RespiraFacilAPI.dto.RecuperarPasswordDTO;
+import com.Rodrigo.RespiraFacilAPI.dto.ResetPasswordDTO;
 
 @RequiredArgsConstructor
 @RestController
@@ -38,5 +37,21 @@ public class UsuarioController {
     public ResponseEntity obtenerEvaluaciones (@PathVariable(name = "id")Integer idUsuario) {
         List<ResponseEvaluacionDTO> evaluacions= evaluacionService.obtenerEvaluacionesPorUsuario(idUsuario);
         return ResponseEntity.ok(evaluacions);
+    }
+
+    @PostMapping("/recuperar-contrasena")
+    public ResponseEntity<String> recuperarContrasena(
+            @RequestBody RecuperarPasswordDTO recuperarPasswordDTO) {
+        usuarioService.solicitarRecuperacionPassword(recuperarPasswordDTO);
+        return ResponseEntity.ok("Solicitud de recuperación generada correctamente");
+    }
+
+    @PatchMapping("/restablecer-contrasena")
+    public ResponseEntity<String> restablecerContrasena(
+            @RequestBody ResetPasswordDTO resetPasswordDTO
+    ){
+        usuarioService.restablecerPassword(resetPasswordDTO);
+
+        return ResponseEntity.ok("Contraseña restablecida correctamente");
     }
 }

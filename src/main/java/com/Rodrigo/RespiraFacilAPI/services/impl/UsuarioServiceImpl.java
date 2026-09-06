@@ -1,9 +1,10 @@
 package com.Rodrigo.RespiraFacilAPI.services.impl;
-import com.Rodrigo.RespiraFacilAPI.dto.AuthUsuarioDTO;
-import com.Rodrigo.RespiraFacilAPI.dto.RegistroUsuarioDTO;
-import com.Rodrigo.RespiraFacilAPI.dto.UsuarioResponseDTO;
+import com.Rodrigo.RespiraFacilAPI.dto.*;
+import com.Rodrigo.RespiraFacilAPI.entities.PasswordResetToken;
 import com.Rodrigo.RespiraFacilAPI.entities.Usuario;
+import com.Rodrigo.RespiraFacilAPI.repositories.PasswordResetTokenRepository;
 import com.Rodrigo.RespiraFacilAPI.repositories.UsuarioRepository;
+import com.Rodrigo.RespiraFacilAPI.services.IEmailService;
 import com.Rodrigo.RespiraFacilAPI.services.IUsuarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -11,12 +12,17 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class UsuarioServiceImpl implements IUsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private  final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final IEmailService emailService;
 
     @Override
     public UsuarioResponseDTO registrarUsuario(RegistroUsuarioDTO registroUsuarioDTO) {
@@ -71,5 +77,55 @@ public class UsuarioServiceImpl implements IUsuarioService {
                 usuario.getApellido(),
                 usuario.getEmail()
         );
+    }
+
+    public  void solicitarRecuperacionPassword(RecuperarPasswordDTO recuperarPasswordDTO) {
+        // Busca al susuario mediante su correo
+        Usuario usuario = usuarioRepository.findByEmail(recuperarPasswordDTO.email())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        // Genera un token único
+        String token = UUID.randomUUID().toString();
+
+        // Crea y guarda el token
+        PasswordResetToken passwordResetToken = new PasswordResetToken();
+
+        passwordResetToken.setToken(token);
+        passwordResetToken.setUsuario(usuario);
+        passwordResetToken.setFechaExpiracion(
+                LocalDateTime.now().plusMinutes(30)
+        );
+
+        passwordResetTokenRepository.save(passwordResetToken);
+
+        // Contruye el enlace que abrira angular
+        String enlaceRecuperacion = "http://localhost:4200/reset-password" + token;
+
+        // Envia el correo
+        emailService.enviarCorreoRecuperacion(
+                usuario.getEmail(),
+                enlaceRecuperacion
+        );
+
+    }
+
+    public  void restablecerPassword(ResetPasswordDTO resetPasswordDTO) {
+        PasswordResetToken passwordResetToken = passwordResetTokenRepository
+                .findByToken(resetPasswordDTO.token())
+                .orElseThrow(() -> new RuntimeException("Token inválido"));
+
+        if (passwordResetToken.getFechaExpiracion().isBefore(LocalDateTime.now())) {
+            passwordResetTokenRepository.delete(passwordResetToken);
+
+            throw new RuntimeException("El enlace de recuperación ha expirado");
+        }
+
+        Usuario usuario = passwordResetToken.getUsuario();
+
+        usuario.setContrasena(passwordEncoder.encode(resetPasswordDTO.nuevaContrasena()));
+
+        usuarioRepository.save(usuario);
+
+        passwordResetTokenRepository.delete(passwordResetToken);
     }
 }
