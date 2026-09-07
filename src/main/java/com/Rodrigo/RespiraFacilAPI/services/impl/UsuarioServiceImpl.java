@@ -99,7 +99,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
         passwordResetTokenRepository.save(passwordResetToken);
 
         // Contruye el enlace que abrira angular
-        String enlaceRecuperacion = "http://localhost:4200/reset-password" + token;
+        String enlaceRecuperacion = "http://localhost:4200/reset-password/" + token;
 
         // Envia el correo
         emailService.enviarCorreoRecuperacion(
