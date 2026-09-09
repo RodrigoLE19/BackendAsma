@@ -7,6 +7,7 @@ import com.Rodrigo.RespiraFacilAPI.repositories.UsuarioRepository;
 import com.Rodrigo.RespiraFacilAPI.services.IEmailService;
 import com.Rodrigo.RespiraFacilAPI.services.IUsuarioService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,9 @@ public class UsuarioServiceImpl implements IUsuarioService {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private  final PasswordResetTokenRepository passwordResetTokenRepository;
     private final IEmailService emailService;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     @Override
     public UsuarioResponseDTO registrarUsuario(RegistroUsuarioDTO registroUsuarioDTO) {
@@ -82,7 +86,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
 
     @Transactional
     public  void solicitarRecuperacionPassword(RecuperarPasswordDTO recuperarPasswordDTO) {
-        // Busca al susuario mediante su correo
+        // Busca al usuario mediante su correo
         Usuario usuario = usuarioRepository.findByEmail(recuperarPasswordDTO.email())
                 .orElse(null);
 
@@ -107,8 +111,9 @@ public class UsuarioServiceImpl implements IUsuarioService {
 
         passwordResetTokenRepository.save(passwordResetToken);
 
-        // Contruye el enlace que abrira angular
-        String enlaceRecuperacion = "http://localhost:4200/reset-password/" + token;
+        // Contruye el enlace que abrirá angular
+        String enlaceRecuperacion =
+                frontendUrl + "/reset-password/" + token;
 
         // Envia el correo
         emailService.enviarCorreoRecuperacion(

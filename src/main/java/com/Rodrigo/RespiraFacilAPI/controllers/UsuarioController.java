@@ -1,6 +1,5 @@
 package com.Rodrigo.RespiraFacilAPI.controllers;
 import com.Rodrigo.RespiraFacilAPI.dto.*;
-import com.Rodrigo.RespiraFacilAPI.entities.Evaluacion;
 import com.Rodrigo.RespiraFacilAPI.services.impl.EvaluacionServiceImpl;
 import com.Rodrigo.RespiraFacilAPI.services.impl.UsuarioServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -34,9 +33,10 @@ public class UsuarioController {
     }
 
     @GetMapping("/{id}/evaluaciones")
-    public ResponseEntity obtenerEvaluaciones (@PathVariable(name = "id")Integer idUsuario) {
-        List<ResponseEvaluacionDTO> evaluacions= evaluacionService.obtenerEvaluacionesPorUsuario(idUsuario);
-        return ResponseEntity.ok(evaluacions);
+    public ResponseEntity<List<ResponseEvaluacionDTO>> obtenerEvaluaciones (
+            @PathVariable(name = "id")Integer idUsuario) {
+        List<ResponseEvaluacionDTO> evaluaciones= evaluacionService.obtenerEvaluacionesPorUsuario(idUsuario);
+        return ResponseEntity.ok(evaluaciones);
     }
 
     @PostMapping("/recuperar-contrasena")

@@ -29,7 +29,9 @@ public class EvaluacionServiceImpl implements IEvaluacionService {
     @Transactional
     @Override
     public ResponseEvaluacionDTO crearEvaluacion(EvaluacionDTO evaluacionDTO) {
-        Evaluacion evaluacion1= evaluacionRepository.save(EvaluacionMapper.toEvaluacionEntity(evaluacionDTO));
-        return EvaluacionMapper.toResponseEvaluacionDTO(evaluacion1);
+        Evaluacion evaluacionGuardada=
+                evaluacionRepository.save(
+                        EvaluacionMapper.toEvaluacionEntity(evaluacionDTO));
+        return EvaluacionMapper.toResponseEvaluacionDTO(evaluacionGuardada);
     }
 }
