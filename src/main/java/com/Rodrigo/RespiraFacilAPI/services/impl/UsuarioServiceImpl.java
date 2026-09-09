@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -68,7 +69,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
         if (!contrasenaCorrecta) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
-                    "Correo o contraseña incorrectas"
+                    "Correo o contraseña incorrectos"
             );
         }
         return new UsuarioResponseDTO(
@@ -79,6 +80,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
         );
     }
 
+    @Transactional
     public  void solicitarRecuperacionPassword(RecuperarPasswordDTO recuperarPasswordDTO) {
         // Busca al susuario mediante su correo
         Usuario usuario = usuarioRepository.findByEmail(recuperarPasswordDTO.email())
@@ -87,6 +89,9 @@ public class UsuarioServiceImpl implements IUsuarioService {
         if (usuario == null) {
             return;
         }
+
+        // Elimina tokens de recuperacion anteriores
+        passwordResetTokenRepository.deleteByUsuario(usuario);
 
         // Genera un token único
         String token = UUID.randomUUID().toString();
