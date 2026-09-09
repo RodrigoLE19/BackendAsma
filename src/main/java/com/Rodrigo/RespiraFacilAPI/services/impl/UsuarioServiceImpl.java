@@ -82,7 +82,11 @@ public class UsuarioServiceImpl implements IUsuarioService {
     public  void solicitarRecuperacionPassword(RecuperarPasswordDTO recuperarPasswordDTO) {
         // Busca al susuario mediante su correo
         Usuario usuario = usuarioRepository.findByEmail(recuperarPasswordDTO.email())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElse(null);
+
+        if (usuario == null) {
+            return;
+        }
 
         // Genera un token único
         String token = UUID.randomUUID().toString();
@@ -112,12 +116,16 @@ public class UsuarioServiceImpl implements IUsuarioService {
     public  void restablecerPassword(ResetPasswordDTO resetPasswordDTO) {
         PasswordResetToken passwordResetToken = passwordResetTokenRepository
                 .findByToken(resetPasswordDTO.token())
-                .orElseThrow(() -> new RuntimeException("Token inválido"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "El enlace de recuperación no es válido"));
 
         if (passwordResetToken.getFechaExpiracion().isBefore(LocalDateTime.now())) {
             passwordResetTokenRepository.delete(passwordResetToken);
 
-            throw new RuntimeException("El enlace de recuperación ha expirado");
+            throw new ResponseStatusException(
+                    HttpStatus.GONE,
+                    "El enlace de recuperación ha expirado");
         }
 
         Usuario usuario = passwordResetToken.getUsuario();
