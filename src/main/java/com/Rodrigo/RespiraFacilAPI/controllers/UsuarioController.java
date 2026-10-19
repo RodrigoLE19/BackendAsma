@@ -1,5 +1,6 @@
 package com.Rodrigo.RespiraFacilAPI.controllers;
 import com.Rodrigo.RespiraFacilAPI.dto.*;
+import com.Rodrigo.RespiraFacilAPI.services.JwtService;
 import com.Rodrigo.RespiraFacilAPI.services.impl.EvaluacionServiceImpl;
 import com.Rodrigo.RespiraFacilAPI.services.impl.UsuarioServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import com.Rodrigo.RespiraFacilAPI.dto.RecuperarPasswordDTO;
 import com.Rodrigo.RespiraFacilAPI.dto.ResetPasswordDTO;
+import com.Rodrigo.RespiraFacilAPI.services.JwtService;
 
 @RequiredArgsConstructor
 @RestController
@@ -15,6 +17,7 @@ import com.Rodrigo.RespiraFacilAPI.dto.ResetPasswordDTO;
 public class UsuarioController {
     private final EvaluacionServiceImpl evaluacionService;
     private final UsuarioServiceImpl usuarioService;
+    private final JwtService jwtService;
 
     @PostMapping("/registro")
     public ResponseEntity<UsuarioResponseDTO> registrarUsuario(
@@ -25,10 +28,21 @@ public class UsuarioController {
     }
 
     @PostMapping("/auth")
-    public ResponseEntity<UsuarioResponseDTO> authUsuario(
-            @RequestBody AuthUsuarioDTO authUsuarioDTO){
+    public ResponseEntity<LoginResponseDTO> authUsuario(
+            @RequestBody AuthUsuarioDTO authUsuarioDTO
+    ){
+        UsuarioResponseDTO usuario = usuarioService.authUsuario(authUsuarioDTO);
+
+        String token = jwtService.generarToken(usuario.idUsuario());
+
         return ResponseEntity.ok(
-                usuarioService.authUsuario(authUsuarioDTO)
+                new LoginResponseDTO(
+                        usuario.idUsuario(),
+                        usuario.nombre(),
+                        usuario.apellido(),
+                        usuario.email(),
+                        token
+                )
         );
     }
 

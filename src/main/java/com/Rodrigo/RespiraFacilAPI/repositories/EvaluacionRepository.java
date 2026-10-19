@@ -12,7 +12,13 @@ import java.util.List;
 @Repository
 public interface EvaluacionRepository extends JpaRepository<Evaluacion, Integer> {
 
-    @Query(value = "select * from evaluaciones where idusuario =:idUsuario", nativeQuery = true)
+    @Query(
+            value =
+                    "select * " +
+                            "from evaluaciones " +
+                            "where idusuario =:idUsuario " +
+                            "ORDER BY fecha DESC, hora DESC, idevaluaciones DESC",
+            nativeQuery = true)
     public List<Evaluacion> obtenerEvaluacionesPorUsuario(@Param("idUsuario") Integer idUsuario);
 
 }

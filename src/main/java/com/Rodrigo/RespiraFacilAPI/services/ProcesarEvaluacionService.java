@@ -1,0 +1,170 @@
+package com.Rodrigo.RespiraFacilAPI.services;
+
+import com.Rodrigo.RespiraFacilAPI.dto.EvaluacionDTO;
+import com.Rodrigo.RespiraFacilAPI.dto.SolicitudEvaluacionDTO;
+import com.Rodrigo.RespiraFacilAPI.services.impl.EvaluacionServiceImpl;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.net.http.HttpClient;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+
+@Service
+public class ProcesarEvaluacionService {
+
+    private final EvaluacionServiceImpl evaluacionService;
+    private final RestClient modeloClient;
+
+    public ProcesarEvaluacionService(
+            EvaluacionServiceImpl evaluacionService,
+            @Value("${app.modelo.url}") String modeloUrl
+    ) {
+        this.evaluacionService = evaluacionService;
+
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .build();
+
+        JdkClientHttpRequestFactory factory =
+                new JdkClientHttpRequestFactory(httpClient);
+
+        factory.setReadTimeout(Duration.ofSeconds(120));
+
+        this.modeloClient = RestClient.builder()
+                .baseUrl(modeloUrl)
+                .requestFactory(factory)
+                .build();
+    }
+
+    public Map<String, Object> procesar(SolicitudEvaluacionDTO solicitud) {
+        Integer idUsuario = obtenerIdUsuario();
+
+        double alturaMetros = solicitud.altura() / 100.0;
+
+        double imc = Math.round(
+                solicitud.peso() / (alturaMetros * alturaMetros) * 100.0
+        ) / 100.0;
+
+        Map<String, Object> datosModelo = Map.of(
+                "questionIMC", imc,
+                "questionWheezing", solicitud.silbidoPecho(),
+                "questionShortnessOfBreath", solicitud.dificultadRespirar(),
+                "questionChestTightness", solicitud.opresionPecho(),
+                "questionCoughing", solicitud.tos()
+        );
+
+        Instant inicio = Instant.now();
+
+        Map<?, ?> respuesta;
+
+        try {
+            respuesta = modeloClient.post()
+                    .uri("/evaluation")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(datosModelo)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (RestClientException error) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "No se pudo consultar el modelo de evaluación",
+                    error
+            );
+        }
+
+        Instant fin = Instant.now();
+
+        Object diagnosticoRecibido = respuesta == null
+                ? null
+                : respuesta.get("AsthmaDiagnosis");
+
+        if (!(diagnosticoRecibido instanceof String diagnostico)
+                || !(diagnostico.equals("[0]")
+                || diagnostico.equals("[1]"))) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "El modelo devolvió un resultado no válido"
+            );
+        }
+
+        Object tiempoRecibido = respuesta.get("prediction_time_ms");
+
+        if (!(tiempoRecibido instanceof Number tiempo)
+                || !Double.isFinite(tiempo.doubleValue())
+                || tiempo.doubleValue() < 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "El modelo devolvió un tiempo de predicción no válido"
+            );
+        }
+
+        long tiempoMs = Math.round(tiempo.doubleValue());
+
+        String resultado = diagnostico.equals("[0]")
+                ? "Baja Probabilidad"
+                : "Alta Probabilidad";
+
+        var fechaHora = fin.atZone(ZoneId.of("America/Lima"));
+
+        EvaluacionDTO evaluacion = new EvaluacionDTO(
+                fechaHora.toLocalDate().toString(),
+                fechaHora.format(DateTimeFormatter.ofPattern("HH:mm")),
+                tiempoMs + " ms",
+                resultado,
+                idUsuario
+        );
+
+        evaluacionService.crearEvaluacion(evaluacion);
+
+        return Map.of(
+                "AsthmaDiagnosis", diagnostico,
+                "message", "Evaluación procesada correctamente",
+                "prediction_time_ms", tiempoMs,
+                "start_time", inicio.toString(),
+                "end_time", fin.toString()
+        );
+    }
+
+    private Integer obtenerIdUsuario() {
+        Authentication authentication = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof Jwt jwt)) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Debes iniciar sesión"
+            );
+        }
+
+        try {
+            int idUsuario = Integer.parseInt(jwt.getSubject());
+
+            if (idUsuario <= 0) {
+                throw new NumberFormatException();
+            }
+
+            return idUsuario;
+        } catch (NumberFormatException error) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "El token no contiene un usuario válido"
+            );
+        }
+    }
+}

@@ -6,6 +6,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import jakarta.validation.Valid;
+
+import com.Rodrigo.RespiraFacilAPI.dto.SolicitudEvaluacionDTO;
+import com.Rodrigo.RespiraFacilAPI.services.ProcesarEvaluacionService;
+import jakarta.validation.Valid;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @RestController
@@ -13,13 +19,15 @@ import java.util.List;
 public class EvaluacionController {
 
     private final EvaluacionServiceImpl evaluacionService;
+    private final ProcesarEvaluacionService procesarEvaluacionService;
 
     @PostMapping
-    public ResponseEntity<ResponseEvaluacionDTO> guardarEvaluacion (
-            @RequestBody EvaluacionDTO evaluacionDTO) {
-        ResponseEvaluacionDTO evaluacionResponse =
-                evaluacionService.crearEvaluacion(evaluacionDTO);
-        return  ResponseEntity.ok(evaluacionResponse);
+    public ResponseEntity<Map<String, Object>> guardarEvaluacion(
+            @Valid @RequestBody SolicitudEvaluacionDTO solicitud
+    ) {
+        return ResponseEntity.ok(
+                procesarEvaluacionService.procesar(solicitud)
+        );
     }
 
     @GetMapping("/usuario/{idUsuario}")
