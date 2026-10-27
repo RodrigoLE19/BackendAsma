@@ -84,6 +84,22 @@ public class UsuarioServiceImpl implements IUsuarioService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public UsuarioResponseDTO obtenerPerfilActual(Integer idUsuario) {
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "El usuario de la sesión ya no existe"
+                ));
+
+        return new UsuarioResponseDTO(
+                usuario.getIdUsuario(),
+                usuario.getNombre(),
+                usuario.getApellido(),
+                usuario.getEmail()
+        );
+    }
+
     @Transactional
     public  void solicitarRecuperacionPassword(RecuperarPasswordDTO recuperarPasswordDTO) {
         // Busca al usuario mediante su correo

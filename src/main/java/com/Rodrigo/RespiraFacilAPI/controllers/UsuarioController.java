@@ -9,7 +9,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import com.Rodrigo.RespiraFacilAPI.dto.RecuperarPasswordDTO;
 import com.Rodrigo.RespiraFacilAPI.dto.ResetPasswordDTO;
-import com.Rodrigo.RespiraFacilAPI.services.JwtService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @RequiredArgsConstructor
 @RestController
@@ -43,6 +46,33 @@ public class UsuarioController {
                         usuario.email(),
                         token
                 )
+        );
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UsuarioResponseDTO> obtenerMiPerfil(
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        if (jwt == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Debes iniciar sesión"
+            );
+        }
+
+        Integer idUsuario;
+
+        try {
+            idUsuario = Integer.valueOf(jwt.getSubject());
+        } catch (NumberFormatException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "La identidad de la sesión no es válida"
+            );
+        }
+
+        return ResponseEntity.ok(
+                usuarioService.obtenerPerfilActual(idUsuario)
         );
     }
 
