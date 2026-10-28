@@ -67,10 +67,10 @@ public class ProcesarEvaluacionService {
 
         Map<String, Object> datosModelo = Map.of(
                 "questionIMC", imc,
-                "questionWheezing", solicitud.silbidoPecho(),
-                "questionShortnessOfBreath", solicitud.dificultadRespirar(),
-                "questionChestTightness", solicitud.opresionPecho(),
-                "questionCoughing", solicitud.tos()
+                "questionWheezing", solicitud.silbidoPecho() ? 1 : 0,
+                "questionShortnessOfBreath", solicitud.dificultadRespirar() ? 1 : 0,
+                "questionChestTightness", solicitud.opresionPecho() ? 1 : 0,
+                "questionCoughing", solicitud.tos() ? 1 : 0
         );
 
         Instant inicio = Instant.now();
