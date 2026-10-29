@@ -98,6 +98,27 @@ public class ProcesarEvaluacionService {
                     duracionMs
             );
 
+            if (error.getStatusCode().value() == 429) {
+                var headers = error.getResponseHeaders();
+
+                log.warn(
+                        "Modelo HTTP 429. Retry-After: {}. Server: {}. Content-Type: {}",
+                        headers == null ? null : headers.getFirst("Retry-After"),
+                        headers == null ? null : headers.getFirst("Server"),
+                        headers == null ? null : headers.getFirst("Content-Type")
+                );
+
+                String cuerpo = error.getResponseBodyAsString()
+                        .replace('\r', ' ')
+                        .replace('\n', ' ');
+
+                log.warn(
+                        "Detalle del rechazo 429: {}",
+                        cuerpo.substring(0, Math.min(cuerpo.length(), 600))
+                );
+            }
+
+
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
                     "No se pudo consultar el modelo de evaluación",
