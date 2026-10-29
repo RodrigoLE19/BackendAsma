@@ -102,6 +102,11 @@ public class ProcesarEvaluacionService {
                 var headers = error.getResponseHeaders();
 
                 log.warn(
+                        "Identificador del rechazo del modelo, CF-Ray: {}",
+                        headers == null ? null : headers.getFirst("CF-Ray")
+                );
+
+                log.warn(
                         "Modelo HTTP 429. Retry-After: {}. Server: {}. Content-Type: {}",
                         headers == null ? null : headers.getFirst("Retry-After"),
                         headers == null ? null : headers.getFirst("Server"),
